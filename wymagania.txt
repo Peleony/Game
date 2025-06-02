@@ -1,0 +1,52 @@
+1. Menu główne:
+✔️ Jest: New Game, High Scores (Leaderboard), Exit.
+2. Pytanie o rozmiar planszy:
+✔️ Jest: Okno pyta o rozmiar planszy, można wybrać rozmiar.
+3. Plansza na JTable + własny model AbstractTableModel:
+✔️ Jest: MazeModel dziedziczy po AbstractTableModel, plansza wyświetlana w JTable.
+4. Interfejs graficzny, brak CLI:
+✔️ Jest: Wszystko w Swing, brak interakcji przez konsolę.
+5. Licznik punktów, czasu, żyć, aktualizowane na żywo:
+❌ BRAK:
+Punkty i życia są wyświetlane.
+❌ BRAK licznika czasu (timer gry widoczny dla gracza).
+6. Pliki graficzne, spójny efekt wizualny:
+✔️ Jest: Pliki graficzne dla postaci, duchów, bonusów.
+7. Pliki graficzne dla każdego elementu okna:
+✔️ Jest: Grafiki dla planszy, duchów, Pac-Mana, bonusów.
+8. Animacje poklatkowe (np. ruch, jedzenie):
+❌ BRAK:
+Nie widać animacji poklatkowych (np. animacja ruchu Pac-Mana, animacja jedzenia).
+❌ BRAK własnych wątków do animacji (nie Timer, nie Executor).
+9. Wszystkie kwestie czasu na wątkach (nie Timer, nie Executor):
+❌ BRAK:
+W kodzie używany jest javax.swing.Timer – to nie spełnia wymagań.
+Musisz zastąpić Timer własnymi wątkami i zadbać o synchronizację.
+10. Przerywanie gry skrótem Ctrl+Shift+Q (powrót do menu):
+❌ BRAK:
+Nie widać obsługi tego skrótu w kodzie.
+11. Ulepszenia:
+❌ BRAK:
+Jest tylko jeden typ ulepszenia (dodatkowe życie).
+❌ BRAK 5 różnych, niebanalnych ulepszeń (np. +50% prędkości, nieśmiertelność, spowolnienie duchów, itp.).
+❌ BRAK losowego pojawiania się ulepszeń przez duchy co 5 sekund z prawdopodobieństwem 25%.
+12. Ranking:
+✔️/❌ Częściowo:
+Wyniki są zapisywane do pliku tekstowego.
+❌ BRAK użycia Serializable (wymagane w zadaniu).
+❌ BRAK wyświetlania rankingu w JList z paskami przewijania (obecnie JOptionPane).
+13. Skalowalność okien:
+✔️ Jest: Okno gry jest skalowalne, plansza się dopasowuje.
+14. MVC i delegacyjny model obsługi zdarzeń:
+✔️/❌ Częściowo:
+Struktura MVC jest zachowana, ale nie widać pełnej separacji (np. logika ulepszeń, animacji, obsługa zdarzeń mogłaby być lepiej rozdzielona).
+15. Wyjątki i komunikaty:
+✔️ Jest: Obsługa wyjątków i komunikaty dla użytkownika.
+Podsumowanie – co należy poprawić:
+Zamień Timer na własne wątki do obsługi czasu, animacji i ruchu.
+Dodaj licznik czasu gry widoczny dla gracza.
+Dodaj min. 5 różnych ulepszeń (z efektami, np. prędkość, nieśmiertelność, spowolnienie duchów, itp.).
+Losowe pojawianie się ulepszeń przez duchy co 5 sekund z prawdopodobieństwem 25%.
+Animacje poklatkowe (np. ruch Pac-Mana, jedzenie) – własne wątki, nie GIF.
+Obsługa skrótu Ctrl+Shift+Q – powrót do menu w dowolnym momencie.
+Ranking: zapisywanie przez Serializable, wyświetlanie w JList z paskami przewijania.
