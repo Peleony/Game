@@ -68,7 +68,7 @@ class MazeCellRenderer extends DefaultTableCellRenderer {
             return this;
         }
 
-        // Duch
+        // Duch 123
         Ghost ghost = model.getGhostAt(row, column);
         if (ghost != null) {
             ImageIcon icon = null;
