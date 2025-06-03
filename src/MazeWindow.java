@@ -7,6 +7,13 @@ class MazeWindow extends JFrame {
     private final MazeModel model;
     private final JLabel scoreLabel = new JLabel();
     private int ghostTick = 0;
+    private volatile boolean running = true;
+    private long lastUpgradeCheck = System.currentTimeMillis();
+
+    // Dodaj pole do przechowywania czasu gry
+    private long gameStartTime = System.currentTimeMillis();
+    private long pausedTime = 0; // suma czasu pauzy (czekania na pierwszy ruch)
+    private long pauseStart = 0; // czas rozpoczęcia pauzy
 
     public MazeWindow(MazeModel model) {
         this.model = model;
@@ -30,7 +37,8 @@ class MazeWindow extends JFrame {
         scoreLabel.setText("Wynik: 0");
         scoreLabel.setHorizontalAlignment(SwingConstants.CENTER);
         add(scoreLabel, BorderLayout.NORTH);
-            // Obsługa klawiszy strzałek do sterowania Pac-Mana
+
+        // Obsługa klawiszy strzałek do sterowania Pac-Mana
         addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
@@ -50,52 +58,122 @@ class MazeWindow extends JFrame {
                 }
             }
         });
-            // Prędkość rozgrywki
-        Timer timer = new Timer(150, e -> {
-            model.stepPacman();
-            ghostTick++;
 
-            // Prędkość ruchu duchów
-            if (ghostTick % 2 == 0) {
-                model.moveSingleGhost(Ghost.Type.BLINKY);
-            }
-
-            if (ghostTick % 6 == 0) {
-                model.moveSingleGhost(Ghost.Type.PINKY);
-            }
-
-            if (ghostTick % 3 == 0) {
-                model.moveSingleGhost(Ghost.Type.INKY);
-            }
-
-            model.moveSingleGhost(Ghost.Type.CLYDE);
-
-            scoreLabel.setText("Wynik: " + model.getScore() + "   Życia: " + model.lives);
-            model.fireTableDataChanged();
-
-            // Sprawdź kolizję z duchem
-            if (model.isPacmanCaught()) {
-                model.lives--;
-                if (model.lives > 0) {
-                    // Resetuj pozycję Pac-Mana i duchów
-                    model.resetPositions();
-                    JOptionPane.showMessageDialog(this, "Straciłeś życie! Pozostało żyć: " + model.lives);
-                } else {
-                    ((Timer)e.getSource()).stop();
-                    JOptionPane.showMessageDialog(this, "Koniec gry! Przegrałeś.");
-                    saveScore(model.getScore());
+        // Zamiast Timer - osobny wątek gry
+        Thread gameThread = new Thread(() -> {
+            while (running) {
+                // Obsługa pauzy na pierwszy ruch
+                if (model.isWaitingForFirstMove()) {
+                    if (pauseStart == 0) pauseStart = System.currentTimeMillis();
+                    try { Thread.sleep(30); } catch (InterruptedException ex) { break; }
+                    continue;
+                } else if (pauseStart != 0) {
+                    pausedTime += System.currentTimeMillis() - pauseStart;
+                    pauseStart = 0;
                 }
-            }
 
-            // Sprawdź wygraną
-            if (!model.arePointsLeft()) {
-                ((Timer)e.getSource()).stop();
-                JOptionPane.showMessageDialog(this, "Wygrałeś! Wszystkie punkty zebrane!");
-                saveScore(model.getScore());
+                try {
+                    long sleepTime = model.isSpeedBoostActive() ? 75 : 150;
+                    Thread.sleep(sleepTime);
+                } catch (InterruptedException ex) {
+                    break;
+                }
+                SwingUtilities.invokeLater(() -> {
+                    model.stepPacman();
+
+                    long now = System.currentTimeMillis();
+                    if (now - lastUpgradeCheck > 10_000) {
+                        lastUpgradeCheck = now;
+                        if (Math.random() < 0.2) {
+                            model.tryAddExtraLife();
+                        }
+                        if (Math.random() < 0.2) {
+                            model.tryAddSpeedUpgrade();
+                        }
+                        if (Math.random() < 1) {
+                            model.tryAddFrightenedUpgrade();
+                        }
+                    }
+
+                    // --- LICZNIK CZASU ---
+                    long elapsed = (System.currentTimeMillis() - gameStartTime - pausedTime) / 1000;
+                    String timeStr = String.format("%02d:%02d", elapsed / 60, elapsed % 60);
+
+                    scoreLabel.setText("Wynik: " + model.getScore() +
+                            "   Życia: " + model.lives +
+                            "   Czas: " + timeStr);
+
+                    model.fireTableDataChanged();
+
+                    // Sprawdź kolizję z duchem
+                    if (model.handlePacmanGhostCollision()) {
+                        // Pac-Man ginie
+                        model.lives--;
+                        if (model.lives > 0) {
+                            model.resetPositions();
+                            JOptionPane.showMessageDialog(MazeWindow.this, "Straciłeś życie! Pozostało żyć: " + model.lives);
+                        } else {
+                            running = false;
+                            JOptionPane.showMessageDialog(MazeWindow.this, "Koniec gry! Przegrałeś.");
+                            saveScore(model.getScore());
+                            dispose();
+                        }
+                    }
+
+                    // Sprawdź wygraną
+                    if (!model.arePointsLeft()) {
+                        running = false;
+                        JOptionPane.showMessageDialog(MazeWindow.this, "Wygrałeś! Wszystkie punkty zebrane!");
+                        saveScore(model.getScore());
+                        dispose();
+                    }
+                });
             }
         });
-        timer.start();
-            // Ustawienia okna
+        gameThread.setDaemon(true);
+        gameThread.start();
+
+        // Wątek duchów - zawsze stała prędkość
+        Thread ghostThread = new Thread(() -> {
+            while (running) {
+                if (model.isWaitingForFirstMove()) {
+                    try { Thread.sleep(30); } catch (InterruptedException ex) { break; }
+                    continue;
+                }
+                try {
+                    Thread.sleep(150);
+                } catch (InterruptedException ex) {
+                    break;
+                }
+                SwingUtilities.invokeLater(() -> {
+                    ghostTick++;
+                    if (model.isFrightenedActive()) {
+                        if (ghostTick % 2 == 0) { // duchy poruszają się wolniej w trybie frightened
+                            for (Ghost.Type t : Ghost.Type.values()) {
+                                Ghost g = model.getGhostByType(t);
+                                if (g != null && !model.isGhostRespawning(g)) g.moveFrightened(model);
+                            }
+                        }
+                    } else {
+                        // Standardowa prędkość duchów
+                        if (ghostTick % 2 == 0) {
+                            model.moveSingleGhost(Ghost.Type.BLINKY);
+                        }
+                        if (ghostTick % 6 == 0) {
+                            model.moveSingleGhost(Ghost.Type.PINKY);
+                        }
+                        if (ghostTick % 3 == 0) {
+                            model.moveSingleGhost(Ghost.Type.INKY);
+                        }
+                        model.moveSingleGhost(Ghost.Type.CLYDE);
+                    }
+                    model.fireTableDataChanged();
+                });
+            }
+        });
+        ghostThread.setDaemon(true);
+        ghostThread.start();
+
         setFocusable(true);
         setSize(800, 800);
         setLocationRelativeTo(null);
@@ -108,7 +186,8 @@ class MazeWindow extends JFrame {
             }
         });
     }
-        // Metoda do zmiany rozmiaru komórek w tabeli
+
+    // Metoda do zmiany rozmiaru komórek w tabeli
     private void resizeCells() {
         int panelWidth = getContentPane().getWidth();
         int panelHeight = getContentPane().getHeight() - scoreLabel.getHeight();

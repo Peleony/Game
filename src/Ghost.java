@@ -4,7 +4,7 @@ public class Ghost {
     public enum Type { BLINKY, PINKY, INKY, CLYDE }
 
     public final String name;
-    public final Type type;
+    public Type type;
     public final Color color;
     public int row, col;
     public int dirR, dirC;
@@ -108,5 +108,38 @@ public class Ghost {
         // Przesuń ducha
         row += dirR;
         col += dirC;
+    }
+
+    // Add this method to handle frightened movement
+    public void moveFrightened(MazeModel model) {
+        // Example implementation: move randomly (you can improve this logic)
+        moveRandom(model);
+    }
+
+    // If moveRandom does not exist, you can implement a simple random move:
+    private void moveRandom(MazeModel model) {
+        int[] dr = {-1, 1, 0, 0};
+        int[] dc = {0, 0, -1, 1};
+        java.util.Random rand = new java.util.Random();
+
+        // Pick a random direction
+        int randomDirection = rand.nextInt(4);
+        int newRow = row + dr[randomDirection];
+        int newCol = col + dc[randomDirection];
+
+        // Check if the new position is within bounds and is a valid cell
+        if (newRow >= 0 && newRow < model.rows && newCol >= 0 && newCol < model.cols) {
+            MazeModel.CellType cell = model.grid[newRow][newCol];
+            if (cell == MazeModel.CellType.POINT || cell == MazeModel.CellType.PATH ||
+                cell == MazeModel.CellType.GHOST_ROOM || cell == MazeModel.CellType.PACMAN) {
+                // Move to the new position
+                row = newRow;
+                col = newCol;
+            }
+        }
+    }
+
+    public Type getType() {
+        return type;
     }
 }

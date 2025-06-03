@@ -35,6 +35,14 @@ public class MazeModel extends AbstractTableModel {
     // Ulepszenie na planszy (np. dodatkowe życie)
     private Upgrade upgrade;
 
+    // Czas trwania przyśpieszenia w milisekundach
+    private long speedBoostEndTime = 0;
+    private long frightenedEndTime = 0;
+    private final Map<Ghost, Long> ghostRespawnTimes = new HashMap<>();
+
+    // Flaga: czy gra czeka na pierwszy ruch po starcie lub respawnie
+    private boolean waitingForFirstMove = true;
+
     /**
      * Konstruktor modelu gry.
      */
@@ -225,6 +233,18 @@ public class MazeModel extends AbstractTableModel {
     }
 
     /**
+     * Zwraca ducha o danym typie (lub null).
+     */
+    public Ghost getGhostByType(Ghost.Type type) {
+        for (Ghost ghost : ghosts) {
+            if (ghost.getType() == type) {
+                return ghost;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Zwraca wiersz Pac-Mana.
      */
     public int getPacmanRow() {
@@ -270,11 +290,50 @@ public class MazeModel extends AbstractTableModel {
     }
 
     /**
+     * Resetuje pozycje Pac-Mana i duchów po utracie życia.
+     */
+    public void resetPositions() {
+        pacmanRow = 1;
+        pacmanCol = 1;
+        // Resetuj duchy na startowe pozycje
+        int gr = rows / 2 - 1;
+        int gc = cols / 2 - 1;
+        ghosts[0].row = gr;     ghosts[0].col = gc;
+        ghosts[1].row = gr;     ghosts[1].col = gc + 1;
+        ghosts[2].row = gr + 1; ghosts[2].col = gc;
+        ghosts[3].row = gr + 1; ghosts[3].col = gc + 1;
+        waitingForFirstMove = true; // zatrzymaj czas i duchy do pierwszego ruchu
+
+        // Resetuj kierunki Pac-Mana
+        pacmanDirR = 0;
+        pacmanDirC = 0;
+        wantedDirR = 0;
+        wantedDirC = 0;
+    }
+
+    /**
+     * Czy gra czeka na pierwszy ruch?
+     */
+    public boolean isWaitingForFirstMove() {
+        return waitingForFirstMove;
+    }
+
+    /**
+     * Ustawia, że pierwszy ruch został wykonany.
+     */
+    public void notifyFirstMove() {
+        waitingForFirstMove = false;
+    }
+
+    /**
      * Ustawia oczekiwany kierunek ruchu Pac-Mana.
      */
     public void setPacmanDirection(int dr, int dc) {
         wantedDirR = dr;
         wantedDirC = dc;
+        if (waitingForFirstMove) {
+            waitingForFirstMove = false; // odblokuj grę po pierwszym ruchu
+        }
     }
 
     /**
@@ -367,6 +426,8 @@ public class MazeModel extends AbstractTableModel {
      * Sprawdza, czy Pac-Man został złapany przez ducha.
      */
     public boolean isPacmanCaught() {
+        // Sprawdzaj tylko, gdy tryb frightened NIE jest aktywny
+        if (isFrightenedActive()) return false;
         for (Ghost ghost : ghosts) {
             if (ghost.row == pacmanRow && ghost.col == pacmanCol) {
                 return true;
@@ -376,30 +437,100 @@ public class MazeModel extends AbstractTableModel {
     }
 
     /**
-     * Resetuje pozycje Pac-Mana i duchów po utracie życia.
+     * Próbuje dodać Extra Life w losowym miejscu na planszy.
+     * Zwraca true jeśli dodano, false jeśli nie.
      */
-    public void resetPositions() {
-        pacmanRow = 1;
-        pacmanCol = 1;
-        // Resetuj duchy na startowe pozycje
-        int gr = rows / 2 - 1;
-        int gc = cols / 2 - 1;
-        ghosts[0].row = gr;     ghosts[0].col = gc;
-        ghosts[1].row = gr;     ghosts[1].col = gc + 1;
-        ghosts[2].row = gr + 1; ghosts[2].col = gc;
-        ghosts[3].row = gr + 1; ghosts[3].col = gc + 1;
+    public boolean tryAddExtraLife() {
+        if (upgrade != null) return false; // już jest
+        Random rand = new Random();
+        for (int i = 0; i < 100; i++) { // max 100 prób
+            int ur = rand.nextInt(rows);
+            int uc = rand.nextInt(cols);
+            if (grid[ur][uc] == CellType.POINT && (ur != pacmanRow || uc != pacmanCol)) {
+                upgrade = new Upgrade(Upgrade.Type.EXTRA_LIFE, ur, uc);
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
-     * Sprawdza, czy Pac-Man zebrał ulepszenie i obsługuje efekt (np. dodatkowe życie).
+     * Próbuje dodać Speed Upgrade w losowym miejscu na planszy.
+     * Zwraca true jeśli dodano, false jeśli nie.
+     */
+    public boolean tryAddSpeedUpgrade() {
+        if (upgrade != null) return false; // już jest jakiś upgrade
+        Random rand = new Random();
+        for (int i = 0; i < 100; i++) { // max 100 prób
+            int ur = rand.nextInt(rows);
+            int uc = rand.nextInt(cols);
+            if (grid[ur][uc] == CellType.POINT && (ur != pacmanRow || uc != pacmanCol)) {
+                upgrade = new Upgrade(Upgrade.Type.SPEED, ur, uc);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Próbuje dodać Frightened Upgrade w losowym miejscu na planszy.
+     * Zwraca true jeśli dodano, false jeśli nie.
+     */
+    public boolean tryAddFrightenedUpgrade() {
+        if (upgrade != null) return false;
+        Random rand = new Random();
+        for (int i = 0; i < 100; i++) {
+            int ur = rand.nextInt(rows);
+            int uc = rand.nextInt(cols);
+            if (grid[ur][uc] == CellType.POINT && (ur != pacmanRow || uc != pacmanCol)) {
+                upgrade = new Upgrade(Upgrade.Type.FRIGHTENED, ur, uc);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Sprawdza, czy Pac-Man zebrał ulepszenie i obsługuje efekt (np. dodatkowe życie, przyśpieszenie).
      */
     public void checkUpgrade() {
         if (upgrade != null && pacmanRow == upgrade.row && pacmanCol == upgrade.col) {
             if (upgrade.type == Upgrade.Type.EXTRA_LIFE) {
                 lives++;
+            } else if (upgrade.type == Upgrade.Type.SPEED) {
+                speedBoostEndTime = System.currentTimeMillis() + 4000;
+            } else if (upgrade.type == Upgrade.Type.FRIGHTENED) {
+                frightenedEndTime = System.currentTimeMillis() + 7000;
             }
-            upgrade = null; // Usuwamy upgrade z planszy po zebraniu
+            upgrade = null;
         }
+    }
+
+    /**
+     * Zwraca true jeśli Pac-Man ma aktywne przyśpieszenie.
+     */
+    public boolean isSpeedBoostActive() {
+        return System.currentTimeMillis() < speedBoostEndTime;
+    }
+
+    /**
+     * Zwraca true jeśli Pac-Man ma aktywne przerażenie.
+     */
+    public boolean isFrightenedActive() {
+        return System.currentTimeMillis() < frightenedEndTime;
+    }
+
+    public boolean isGhostRespawning(Ghost ghost) {
+        Long until = ghostRespawnTimes.get(ghost);
+        return until != null && System.currentTimeMillis() < until;
+    }
+
+    public void respawnGhost(Ghost ghost) {
+        int gr = rows / 2 - 1;
+        int gc = cols / 2 - 1;
+        ghost.row = gr;
+        ghost.col = gc;
+        ghostRespawnTimes.put(ghost, System.currentTimeMillis() + 5000); // 5 sekund pauzy
     }
 
     /**
@@ -418,4 +549,19 @@ public class MazeModel extends AbstractTableModel {
      * Zwraca aktualny kierunek ruchu Pac-Mana (kolumna).
      */
     public int getPacmanDirC() { return pacmanDirC; }
+
+    public boolean handlePacmanGhostCollision() {
+        for (Ghost ghost : ghosts) {
+            if (ghost.row == pacmanRow && ghost.col == pacmanCol && !isGhostRespawning(ghost)) {
+                if (isFrightenedActive()) {
+                    score += 10;
+                    respawnGhost(ghost);
+                    return false; // Pac-Man nie ginie
+                } else {
+                    return true; // Pac-Man ginie
+                }
+            }
+        }
+        return false;
+    }
 }

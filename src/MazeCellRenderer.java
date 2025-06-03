@@ -13,8 +13,6 @@ class MazeCellRenderer extends DefaultTableCellRenderer {
     private final ImageIcon pinkyIcon = new ImageIcon("img/pinky.png");
     private final ImageIcon inkyIcon = new ImageIcon("img/inky.png");
     private final ImageIcon clydeIcon = new ImageIcon("img/clyde.png");
-    private final ImageIcon bonusIcon = new ImageIcon("img/bonus.png");
-
     private final ImageIcon blinkyUpIcon    = new ImageIcon("img/blinky_up.png");
     private final ImageIcon blinkyDownIcon  = new ImageIcon("img/blinky_down.png");
     private final ImageIcon blinkyLeftIcon  = new ImageIcon("img/blinky_left.png");
@@ -31,6 +29,7 @@ class MazeCellRenderer extends DefaultTableCellRenderer {
     private final ImageIcon clydeDownIcon  = new ImageIcon("img/clyde_down.png");
     private final ImageIcon clydeLeftIcon  = new ImageIcon("img/clyde_left.png");
     private final ImageIcon clydeRightIcon = new ImageIcon("img/clyde_right.png");
+    private final ImageIcon frightenedGhostIcon = new ImageIcon("img/frightened_ghost.png");
 
     public MazeCellRenderer(MazeModel model) {
         this.model = model;
@@ -76,39 +75,47 @@ class MazeCellRenderer extends DefaultTableCellRenderer {
             String fallbackText = "G";
             int dr = ghost.dirR;
             int dc = ghost.dirC;
-            switch (ghost.type) {
-                case BLINKY:
-                    if (dr == -1) icon = blinkyUpIcon;
-                    else if (dr == 1) icon = blinkyDownIcon;
-                    else if (dc == -1) icon = blinkyLeftIcon;
-                    else if (dc == 1) icon = blinkyRightIcon;
-                    if (icon == null) icon = blinkyIcon; // fallback
-                    fallback = Color.RED; fallbackText = "B";
-                    break;
-                case PINKY:
-                    if (dr == -1) icon = pinkyUpIcon;
-                    else if (dr == 1) icon = pinkyDownIcon;
-                    else if (dc == -1) icon = pinkyLeftIcon;
-                    else if (dc == 1) icon = pinkyRightIcon;
-                    if (icon == null) icon = pinkyIcon; // fallback
-                    fallback = Color.PINK; fallbackText = "P";
-                    break;
-                case INKY:
-                    if (dr == -1) icon = inkyUpIcon;
-                    else if (dr == 1) icon = inkyDownIcon;
-                    else if (dc == -1) icon = inkyLeftIcon;
-                    else if (dc == 1) icon = inkyRightIcon;
-                    if (icon == null) icon = inkyIcon; // fallback
-                    fallback = Color.CYAN; fallbackText = "I";
-                    break;
-                case CLYDE:
-                    if (dr == -1) icon = clydeUpIcon;
-                    else if (dr == 1) icon = clydeDownIcon;
-                    else if (dc == -1) icon = clydeLeftIcon;
-                    else if (dc == 1) icon = clydeRightIcon;
-                    if (icon == null) icon = clydeIcon; // fallback
-                    fallback = Color.ORANGE; fallbackText = "C";
-                    break;
+
+            // Jeśli tryb frightened, ustaw wystraszoną grafikę
+            if (model.isFrightenedActive()) {
+                icon = getScaledIcon(frightenedGhostIcon, cellSize);
+                fallback = Color.BLUE;
+                fallbackText = "F";
+            } else {
+                switch (ghost.type) {
+                    case BLINKY:
+                        if (dr == -1) icon = blinkyUpIcon;
+                        else if (dr == 1) icon = blinkyDownIcon;
+                        else if (dc == -1) icon = blinkyLeftIcon;
+                        else if (dc == 1) icon = blinkyRightIcon;
+                        if (icon == null) icon = blinkyIcon; // fallback
+                        fallback = Color.RED; fallbackText = "B";
+                        break;
+                    case PINKY:
+                        if (dr == -1) icon = pinkyUpIcon;
+                        else if (dr == 1) icon = pinkyDownIcon;
+                        else if (dc == -1) icon = pinkyLeftIcon;
+                        else if (dc == 1) icon = pinkyRightIcon;
+                        if (icon == null) icon = pinkyIcon; // fallback
+                        fallback = Color.PINK; fallbackText = "P";
+                        break;
+                    case INKY:
+                        if (dr == -1) icon = inkyUpIcon;
+                        else if (dr == 1) icon = inkyDownIcon;
+                        else if (dc == -1) icon = inkyLeftIcon;
+                        else if (dc == 1) icon = inkyRightIcon;
+                        if (icon == null) icon = inkyIcon; // fallback
+                        fallback = Color.CYAN; fallbackText = "I";
+                        break;
+                    case CLYDE:
+                        if (dr == -1) icon = clydeUpIcon;
+                        else if (dr == 1) icon = clydeDownIcon;
+                        else if (dc == -1) icon = clydeLeftIcon;
+                        else if (dc == 1) icon = clydeRightIcon;
+                        if (icon == null) icon = clydeIcon; // fallback
+                        fallback = Color.ORANGE; fallbackText = "C";
+                        break;
+                }
             }
             ImageIcon scaled = getScaledIcon(icon, cellSize);
             if (scaled != null) {
@@ -116,26 +123,40 @@ class MazeCellRenderer extends DefaultTableCellRenderer {
                 setText("");
             } else {
                 setIcon(null);
-                setForeground(fallback);
                 setText(fallbackText);
+                setBackground(fallback);
             }
-            setBackground(Color.BLACK);
+            setForeground(Color.BLACK);
             return this;
         }
 
         // Bonus
         Upgrade upgrade = model.getUpgrade();
         if (upgrade != null && upgrade.row == row && upgrade.col == column) {
-            ImageIcon scaled = getScaledIcon(bonusIcon, cellSize);
-            if (scaled != null) {
+            ImageIcon scaled = null;
+            Color fallbackColor = Color.LIGHT_GRAY;
+            String fallbackText = "+";
+
+            // Różne bonusy - różny wygląd
+            if (upgrade.type == Upgrade.Type.EXTRA_LIFE) {
+                scaled = getScaledIcon(new ImageIcon("img/bonus_life.png"), cellSize);
+                fallbackColor = Color.GREEN;
+                fallbackText = "1";
+            } else if (upgrade.type == Upgrade.Type.SPEED) {
+                scaled = getScaledIcon(new ImageIcon("img/bonus_speed.png"), cellSize);
+                fallbackColor = Color.ORANGE;
+                fallbackText = "S";
+            }
+
+            if (scaled != null && scaled.getIconWidth() > 0) {
                 setIcon(scaled);
                 setText("");
             } else {
                 setIcon(null);
-                setForeground(Color.GREEN);
-                setText("+");
+                setForeground(fallbackColor);
+                setText(fallbackText);
             }
-            setBackground(Color.BLACK);
+            setBackground(Color.LIGHT_GRAY);
             return this;
         }
 
@@ -163,6 +184,11 @@ class MazeCellRenderer extends DefaultTableCellRenderer {
             default:
                 c.setBackground(Color.BLACK);
         }
+
+        if (model.isFrightenedActive()) {
+            
+        }
+
         return c;
     }
 

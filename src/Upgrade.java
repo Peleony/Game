@@ -1,5 +1,5 @@
 public class Upgrade {
-    public enum Type { EXTRA_LIFE }
+    public enum Type { EXTRA_LIFE, SPEED,FRIGHTENED}
     public final Type type;
     public int row, col;
 

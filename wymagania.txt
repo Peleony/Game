@@ -50,3 +50,12 @@ Losowe pojawianie się ulepszeń przez duchy co 5 sekund z prawdopodobieństwem 
 Animacje poklatkowe (np. ruch Pac-Mana, jedzenie) – własne wątki, nie GIF.
 Obsługa skrótu Ctrl+Shift+Q – powrót do menu w dowolnym momencie.
 Ranking: zapisywanie przez Serializable, wyświetlanie w JList z paskami przewijania.
+
+Do zrobienia:
+-dodanie grafik
+-dodanie jeszcze 2 ulupszeń
+-poprawa wyglądu Menu
+-zmiana systemu zapisu punktów
+-dodanie skrótu klawiszowego
+-sprawdzić responsywność okna
+-SPRAWDZIĆ KOD
