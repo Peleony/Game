@@ -4,28 +4,21 @@ import java.util.*;
 public class GameModel extends AbstractTableModel {
     enum CellType { WALL, PATH, GHOST_ROOM, POINT, PACMAN, GHOST }
 
-    // Plansza gry
     CellType[][] grid;
     int rows, cols;
 
-    // Pozycja Pac-Mana
     int pacmanRow, pacmanCol;
 
-    // Wynik i liczba żyć
     int score = 0;
     public int lives = 3;
 
-    // Tablica duchów
     private final Ghost[] ghosts = new Ghost[4];
 
-    // Kierunek ruchu Pac-Mana (aktualny i oczekiwany)
     private int pacmanDirR = 0, pacmanDirC = 0;
     private int wantedDirR = 0, wantedDirC = 0;
 
-    // Ulepszenie na planszy
     private Upgrade upgrade;
 
-    // Czasy trwania efektów
     private long speedBoostEndTime = 0;
     private long frightenedEndTime = 0;
     private long invincibleEndTime = 0;
@@ -34,7 +27,7 @@ public class GameModel extends AbstractTableModel {
 
     private boolean waitingForFirstMove = true;
 
-    // --- Konstruktor i generowanie planszy ---
+    // --- Konstruktor  ---
 
     public GameModel(int rows, int cols) {
         this.rows = rows;
@@ -116,7 +109,7 @@ public class GameModel extends AbstractTableModel {
         return (verticalWalls ^ horizontalWalls);
     }
 
-    // --- Ruch Pac-Mana i duchów ---
+    // --- Ruch pacmana i duchów ---
 
     public boolean isMovableTo(int r, int c) {
         if (r < 0 || r >= rows || c < 0 || c >= cols) return false;
@@ -163,7 +156,7 @@ public class GameModel extends AbstractTableModel {
         return null;
     }
 
-    // --- Gettery i obsługa planszy ---
+    // --- Gettery  ---
 
     public int getPacmanRow() { return pacmanRow; }
     public int getPacmanCol() { return pacmanCol; }
@@ -280,7 +273,6 @@ public class GameModel extends AbstractTableModel {
         if (upgrade != null) return false;
         java.util.List<Ghost> available = new ArrayList<>();
         for (Ghost g : ghosts) {
-            // Ulepszenie nie pojawia się pod Pac-Manem
             if ((g.row != pacmanRow || g.col != pacmanCol) && grid[g.row][g.col] == CellType.POINT) {
                 available.add(g);
             }
