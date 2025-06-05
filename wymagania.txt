@@ -52,10 +52,6 @@ Obsługa skrótu Ctrl+Shift+Q – powrót do menu w dowolnym momencie.
 Ranking: zapisywanie przez Serializable, wyświetlanie w JList z paskami przewijania.
 
 Do zrobienia:
--dodanie grafik
--dodanie jeszcze 2 ulupszeń
 -poprawa wyglądu Menu
--zmiana systemu zapisu punktów
--dodanie skrótu klawiszowego
 -sprawdzić responsywność okna
 -SPRAWDZIĆ KOD

@@ -1,5 +1,5 @@
 public class Upgrade {
-    public enum Type { EXTRA_LIFE, SPEED,FRIGHTENED}
+    public enum Type { EXTRA_LIFE, SPEED, FRIGHTENED, INVINCIBLE, TIMEFREEZE }
     public final Type type;
     public int row, col;
 
@@ -9,3 +9,4 @@ public class Upgrade {
         this.col = col;
     }
 }
+

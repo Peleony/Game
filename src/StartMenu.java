@@ -1,6 +1,5 @@
 import javax.swing.*;
 import java.awt.*;
-import java.io.*;
 
 public class StartMenu extends JFrame {
     public StartMenu() {
@@ -10,9 +9,15 @@ public class StartMenu extends JFrame {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(10, 10, 10, 10);
 
+        // Przyciski
         JButton newGameBtn = new JButton("New Game");
         JButton leaderboardBtn = new JButton("Leaderboard");
         JButton exitBtn = new JButton("Exit");
+
+        Dimension buttonSize = new Dimension(180, 40);
+        newGameBtn.setPreferredSize(buttonSize);
+        leaderboardBtn.setPreferredSize(buttonSize);
+        exitBtn.setPreferredSize(buttonSize);
 
         gbc.gridy = 0;
         add(newGameBtn, gbc);
@@ -21,39 +26,67 @@ public class StartMenu extends JFrame {
         gbc.gridy = 2;
         add(exitBtn, gbc);
 
+
+        // New Game
         newGameBtn.addActionListener(e -> {
-            String rowsStr = JOptionPane.showInputDialog(this, "Podaj wysokość mapy (nieparzyste od 10 do 100):");
-            String colsStr = JOptionPane.showInputDialog(this, "Podaj szerokość mapy (nieparzyste od 10 do 100):");
-            try {
-                int rows = Integer.parseInt(rowsStr);
-                int cols = Integer.parseInt(colsStr);
-                if (rows < 7 || cols < 7) throw new NumberFormatException();
-                MazeModel model = new MazeModel(rows, cols);
-                new MazeWindow(model);
-                dispose();
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Nieprawidłowe wymiary mapy!");
-            }
-        });
+            JPanel panel = new JPanel(new GridLayout(2, 2, 5, 5));
+            JTextField rowsField = new JTextField();
+            JTextField colsField = new JTextField();
+            panel.add(new JLabel("Wysokość mapy (od 10 do 100):"));
+            panel.add(rowsField);
+            panel.add(new JLabel("Szerokość mapy (od 10 do 100):"));
+            panel.add(colsField);
 
-        leaderboardBtn.addActionListener(e -> {
-            StringBuilder sb = new StringBuilder();
-            try (BufferedReader br = new BufferedReader(new FileReader("scores.txt"))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    sb.append(line).append("\n");
+            int result = JOptionPane.showConfirmDialog(this, panel, "Nowa gra", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+            if (result == JOptionPane.OK_OPTION) {
+                try {
+                    int rows = Integer.parseInt(rowsField.getText());
+                    int cols = Integer.parseInt(colsField.getText());
+                    if (rows < 7 || cols < 7) throw new NumberFormatException();
+                    GameModel model = new GameModel(rows, cols); // <-- zmiana tutaj
+                    new GameWindow(model);
+                    dispose();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Nieprawidłowe wymiary mapy!");
                 }
-            } catch (IOException ex) {
-                sb.append("Brak zapisanych wyników.");
             }
-            ImageIcon icon = new ImageIcon("icon.png");
-            JOptionPane.showMessageDialog(this, sb.toString(), "RANKING", JOptionPane.INFORMATION_MESSAGE, icon);
         });
 
+        // Leaderboard
+        leaderboardBtn.addActionListener(e -> {
+            java.util.List<Ranking> scores = loadScores();
+            DefaultListModel<String> model = new DefaultListModel<>();
+            for (Ranking entry : scores) {
+                model.addElement(entry.toString());
+            }
+            if (model.isEmpty()) model.addElement("Brak wyników.");
+
+            JList<String> list = new JList<>(model);
+            list.setFont(new Font("Monospaced", Font.PLAIN, 16));
+            JScrollPane scrollPane = new JScrollPane(list);
+            scrollPane.setPreferredSize(new Dimension(300, 300));
+
+            JOptionPane.showMessageDialog(this, scrollPane, "RANKING", JOptionPane.PLAIN_MESSAGE);
+        });
+
+        // Exit
         exitBtn.addActionListener(e -> System.exit(0));
 
         setSize(300, 250);
         setLocationRelativeTo(null);
         setVisible(true);
+    }
+
+    
+    // Ranking z pliku
+    @SuppressWarnings("unchecked")
+    private java.util.List<Ranking> loadScores() {
+        java.io.File file = new java.io.File("scores.ser");
+        if (!file.exists()) return new java.util.ArrayList<>();
+        try (java.io.ObjectInputStream in = new java.io.ObjectInputStream(new java.io.FileInputStream(file))) {
+            return (java.util.List<Ranking>) in.readObject();
+        } catch (Exception ex) {
+            return new java.util.ArrayList<>();
+        }
     }
 }
