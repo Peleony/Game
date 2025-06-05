@@ -2,7 +2,6 @@ import javax.swing.table.AbstractTableModel;
 import java.util.*;
 
 public class GameModel extends AbstractTableModel {
-    // Typy pól na planszy
     enum CellType { WALL, PATH, GHOST_ROOM, POINT, PACMAN, GHOST }
 
     // Plansza gry
@@ -33,7 +32,6 @@ public class GameModel extends AbstractTableModel {
     private long timeFreezeEndTime = 0;
     private final Map<Ghost, Long> ghostRespawnTimes = new HashMap<>();
 
-    // Flaga: czy gra czeka na pierwszy ruch po starcie lub respawnie
     private boolean waitingForFirstMove = true;
 
     // --- Konstruktor i generowanie planszy ---
@@ -46,54 +44,35 @@ public class GameModel extends AbstractTableModel {
     }
 
     private void generateMaze() {
-        // Wypełnij planszę ścianami
         for (int r = 0; r < rows; r++)
             Arrays.fill(grid[r], CellType.WALL);
 
-        // Wygeneruj ścieżki
         generatePaths(1, 1);
 
-        // Pokój duchów
         for (int r = rows / 2 - 1; r <= rows / 2; r++)
             for (int c = cols / 2 - 1; c <= cols / 2 + 1; c++)
                 grid[r][c] = CellType.GHOST_ROOM;
 
-        // Przejście do pokoju duchów
         for (int c = cols / 2 - 1; c <= cols / 2 + 1; c++)
             grid[rows / 2 - 2][c] = CellType.PATH;
 
-        // Dodaj dodatkowe przejścia
         addExtraHoles(0.08);
 
-        // Zamień PATH na POINT (punkty do zbierania)
         for (int r = 0; r < rows; r++)
             for (int c = 0; c < cols; c++)
                 if (grid[r][c] == CellType.PATH)
                     grid[r][c] = CellType.POINT;
 
-        // Ustaw startową pozycję Pac-Mana
         pacmanRow = 1;
         pacmanCol = 1;
         if (grid[pacmanRow][pacmanCol] == CellType.POINT)
             grid[pacmanRow][pacmanCol] = CellType.PATH;
 
-        // Dodaj duchy
         int gr = rows / 2 - 1, gc = cols / 2 - 1;
         ghosts[0] = new Ghost(Ghost.Type.BLINKY, gr, gc, 0, 1);
         ghosts[1] = new Ghost(Ghost.Type.PINKY, gr, gc + 1, 0, 1);
         ghosts[2] = new Ghost(Ghost.Type.INKY, gr + 1, gc, 0, 1);
         ghosts[3] = new Ghost(Ghost.Type.CLYDE, gr + 1, gc + 1, 0, 1);
-
-        // Dodaj upgrade (np. dodatkowe życie) w losowym miejscu na ścieżce
-        Random rand = new Random();
-        while (true) {
-            int ur = rand.nextInt(rows);
-            int uc = rand.nextInt(cols);
-            if (grid[ur][uc] == CellType.POINT && (ur != pacmanRow || uc != pacmanCol)) {
-                upgrade = new Upgrade(Upgrade.Type.EXTRA_LIFE, ur, uc);
-                break;
-            }
-        }
     }
 
     private void generatePaths(int r, int c) {
@@ -234,7 +213,7 @@ public class GameModel extends AbstractTableModel {
         }
     }
 
-    // --- BFS dla duchów ---
+    // --- BFS ---
 
     public int[] getNextStepBFS(int fromRow, int fromCol, int toRow, int toCol) {
         boolean[][] visited = new boolean[rows][cols];
@@ -297,74 +276,35 @@ public class GameModel extends AbstractTableModel {
 
     // --- Ulepszenia ---
 
+    private boolean tryAddUpgrade(Upgrade.Type type) {
+        if (upgrade != null) return false;
+        java.util.List<Ghost> available = new ArrayList<>();
+        for (Ghost g : ghosts) {
+            // Ulepszenie nie pojawia się pod Pac-Manem
+            if ((g.row != pacmanRow || g.col != pacmanCol) && grid[g.row][g.col] == CellType.POINT) {
+                available.add(g);
+            }
+        }
+        if (available.isEmpty()) return false;
+        Ghost chosen = available.get(new Random().nextInt(available.size()));
+        upgrade = new Upgrade(type, chosen.row, chosen.col);
+        return true;
+    }
+
     public boolean tryAddExtraLife() {
-        if (upgrade != null) return false;
-        Random rand = new Random();
-        for (int i = 0; i < 100; i++) {
-            int ur = rand.nextInt(rows);
-            int uc = rand.nextInt(cols);
-            if (grid[ur][uc] == CellType.POINT && (ur != pacmanRow || uc != pacmanCol)) {
-                upgrade = new Upgrade(Upgrade.Type.EXTRA_LIFE, ur, uc);
-                return true;
-            }
-        }
-        return false;
+        return tryAddUpgrade(Upgrade.Type.EXTRA_LIFE);
     }
-
     public boolean tryAddSpeedUpgrade() {
-        if (upgrade != null) return false;
-        Random rand = new Random();
-        for (int i = 0; i < 100; i++) {
-            int ur = rand.nextInt(rows);
-            int uc = rand.nextInt(cols);
-            if (grid[ur][uc] == CellType.POINT && (ur != pacmanRow || uc != pacmanCol)) {
-                upgrade = new Upgrade(Upgrade.Type.SPEED, ur, uc);
-                return true;
-            }
-        }
-        return false;
+        return tryAddUpgrade(Upgrade.Type.SPEED);
     }
-
     public boolean tryAddFrightenedUpgrade() {
-        if (upgrade != null) return false;
-        Random rand = new Random();
-        for (int i = 0; i < 100; i++) {
-            int ur = rand.nextInt(rows);
-            int uc = rand.nextInt(cols);
-            if (grid[ur][uc] == CellType.POINT && (ur != pacmanRow || uc != pacmanCol)) {
-                upgrade = new Upgrade(Upgrade.Type.FRIGHTENED, ur, uc);
-                return true;
-            }
-        }
-        return false;
+        return tryAddUpgrade(Upgrade.Type.FRIGHTENED);
     }
-
     public boolean tryAddInvincibleUpgrade() {
-        if (upgrade != null) return false;
-        Random rand = new Random();
-        for (int i = 0; i < 100; i++) {
-            int ur = rand.nextInt(rows);
-            int uc = rand.nextInt(cols);
-            if (grid[ur][uc] == CellType.POINT && (ur != pacmanRow || uc != pacmanCol)) {
-                upgrade = new Upgrade(Upgrade.Type.INVINCIBLE, ur, uc);
-                return true;
-            }
-        }
-        return false;
+        return tryAddUpgrade(Upgrade.Type.INVINCIBLE);
     }
-
     public boolean tryAddTimeFreezeUpgrade() {
-        if (upgrade != null) return false;
-        Random rand = new Random();
-        for (int i = 0; i < 100; i++) {
-            int ur = rand.nextInt(rows);
-            int uc = rand.nextInt(cols);
-            if (grid[ur][uc] == CellType.POINT && (ur != pacmanRow || uc != pacmanCol)) {
-                upgrade = new Upgrade(Upgrade.Type.TIMEFREEZE, ur, uc);
-                return true;
-            }
-        }
-        return false;
+        return tryAddUpgrade(Upgrade.Type.TIMEFREEZE);
     }
 
     public void checkUpgrade() {

@@ -2,10 +2,10 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
 
-class MazeCellRenderer extends DefaultTableCellRenderer {
+class GameCellRenderer extends DefaultTableCellRenderer {
     private final GameModel model;
 
-    // Ikony Pac-Mana
+    // Ikony Pacmana
     private final ImageIcon pacmanUpIcon    = new ImageIcon("img/pacman_up.png");
     private final ImageIcon pacmanDownIcon  = new ImageIcon("img/pacman_down.png");
     private final ImageIcon pacmanLeftIcon  = new ImageIcon("img/pacman_left.png");
@@ -40,7 +40,7 @@ class MazeCellRenderer extends DefaultTableCellRenderer {
 
     private final ImageIcon frightenedGhostIcon = new ImageIcon("img/frightened_ghost.png");
 
-    public MazeCellRenderer(GameModel model) { // <-- zmiana z MazeModel na GameModel
+    public GameCellRenderer(GameModel model) {
         this.model = model;
     }
 
@@ -50,7 +50,7 @@ class MazeCellRenderer extends DefaultTableCellRenderer {
         Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
         int cellSize = table.getRowHeight();
 
-        // Pac-Man
+        // Pacman
         if (model.getPacmanRow() == row && model.getPacmanCol() == column) {
             ImageIcon icon = null;
             int dr = model.getPacmanDirR();
@@ -80,7 +80,7 @@ class MazeCellRenderer extends DefaultTableCellRenderer {
             return this;
         }
 
-        // Duch
+        // Duchy
         Ghost ghost = model.getGhostAt(row, column);
         if (ghost != null) {
             ImageIcon icon = null;
@@ -142,7 +142,7 @@ class MazeCellRenderer extends DefaultTableCellRenderer {
             return this;
         }
 
-        // Bonus
+        // Bonusy
         Upgrade upgrade = model.getUpgrade();
         if (upgrade != null && upgrade.row == row && upgrade.col == column) {
             ImageIcon scaled = null;
@@ -183,8 +183,8 @@ class MazeCellRenderer extends DefaultTableCellRenderer {
             return this;
         }
 
-        // Zwykłe pole
-        GameModel.CellType cell = model.grid[row][column]; // <-- zmiana z MazeModel.CellType
+        // Pola
+        GameModel.CellType cell = model.grid[row][column];
         setHorizontalAlignment(SwingConstants.CENTER);
         setIcon(null);
         setText("");

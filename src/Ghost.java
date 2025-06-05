@@ -42,7 +42,7 @@ public class Ghost {
         this.dirC = dirC;
     }
 
-    public void move(GameModel model) { // <-- zmiana z MazeModelModel na GameModel
+    public void move(GameModel model) {
         int[] dr = {-1, 1, 0, 0};
         int[] dc = {0, 0, -1, 1};
         java.util.Random rand = new java.util.Random();
@@ -74,13 +74,12 @@ public class Ghost {
             dirR = step[0];
             dirC = step[1];
         } else {
-            // Clyde lub inne duchy - losowy ruch
             java.util.List<int[]> possibleDirs = new java.util.ArrayList<>();
             for (int d = 0; d < 4; d++) {
                 int nr = row + dr[d];
                 int nc = col + dc[d];
                 if (nr >= 0 && nr < model.rows && nc >= 0 && nc < model.cols) {
-                    GameModel.CellType cell = model.grid[nr][nc]; // <-- zmiana z MazeModel.CellType
+                    GameModel.CellType cell = model.grid[nr][nc];
                     if (cell == GameModel.CellType.POINT || cell == GameModel.CellType.PATH ||
                         cell == GameModel.CellType.GHOST_ROOM || cell == GameModel.CellType.PACMAN) {
                         possibleDirs.add(new int[]{dr[d], dc[d]});
@@ -91,7 +90,7 @@ public class Ghost {
             int nextC = col + dirC;
             boolean canContinue = false;
             if (nextR >= 0 && nextR < model.rows && nextC >= 0 && nextC < model.cols) {
-                GameModel.CellType cell = model.grid[nextR][nextC]; // <-- zmiana z MazeModel.CellType
+                GameModel.CellType cell = model.grid[nextR][nextC];
                 if (cell == GameModel.CellType.POINT || cell == GameModel.CellType.PATH ||
                     cell == GameModel.CellType.GHOST_ROOM || cell == GameModel.CellType.PACMAN) {
                     canContinue = true;
@@ -105,33 +104,27 @@ public class Ghost {
                 }
             }
         }
-        // Przesuń ducha
         row += dirR;
         col += dirC;
     }
 
-    // Add this method to handle frightened movement
-    public void moveFrightened(GameModel model) { // <-- zmiana z MazeModel na GameModel
+    public void moveFrightened(GameModel model) {
         moveRandom(model);
     }
 
-    // If moveRandom does not exist, you can implement a simple random move:
-    private void moveRandom(GameModel model) { // <-- zmiana z MazeModel na GameModel
+    private void moveRandom(GameModel model) {
         int[] dr = {-1, 1, 0, 0};
         int[] dc = {0, 0, -1, 1};
         java.util.Random rand = new java.util.Random();
 
-        // Pick a random direction
         int randomDirection = rand.nextInt(4);
         int newRow = row + dr[randomDirection];
         int newCol = col + dc[randomDirection];
 
-        // Check if the new position is within bounds and is a valid cell
         if (newRow >= 0 && newRow < model.rows && newCol >= 0 && newCol < model.cols) {
-            GameModel.CellType cell = model.grid[newRow][newCol]; // <-- zmiana z MazeModel.CellType
+            GameModel.CellType cell = model.grid[newRow][newCol];
             if (cell == GameModel.CellType.POINT || cell == GameModel.CellType.PATH ||
                 cell == GameModel.CellType.GHOST_ROOM || cell == GameModel.CellType.PACMAN) {
-                // Move to the new position
                 row = newRow;
                 col = newCol;
             }

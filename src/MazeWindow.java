@@ -4,27 +4,26 @@ import java.awt.event.*;
 
 class GameWindow extends JFrame {
     private final JTable table;
-    private final GameModel model; // <-- zmiana z MazeModel na GameModel
+    private final GameModel model;
     private final JLabel scoreLabel = new JLabel();
     private int ghostTick = 0;
     private volatile boolean running = true;
     private long lastUpgradeCheck = System.currentTimeMillis();
 
-    // Czas gry i pauzy
     private long gameStartTime = System.currentTimeMillis();
     private long pausedTime = 0;
     private long pauseStart = 0;
 
-    private boolean gameEnded = false; // dodaj pole w klasie
+    private boolean gameEnded = false;
 
-    public GameWindow(GameModel model) { // <-- zmiana z MazeModel na GameModel
+    public GameWindow(GameModel model) {
         this.model = model;
         setTitle("Labirynt Pac-Mana");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
         table = new JTable(model);
-        table.setDefaultRenderer(Object.class, new MazeCellRenderer(model));
+        table.setDefaultRenderer(Object.class, new GameCellRenderer(model));
         table.setTableHeader(null);
         table.setShowGrid(false);
         table.setIntercellSpacing(new Dimension(0, 0));
@@ -40,13 +39,14 @@ class GameWindow extends JFrame {
         gbc.gridx = 0;
         gbc.gridy = 0;
         centerPanel.add(scrollPane, gbc);
+        centerPanel.setBackground(Color.BLACK);
         add(centerPanel, BorderLayout.CENTER);
 
         scoreLabel.setText("Wynik: 0");
         scoreLabel.setHorizontalAlignment(SwingConstants.CENTER);
         add(scoreLabel, BorderLayout.NORTH);
 
-        // Obsługa klawiszy
+        // Klawisze
         addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
@@ -56,7 +56,6 @@ class GameWindow extends JFrame {
                     case KeyEvent.VK_LEFT:  model.setPacmanDirection(0, -1); break;
                     case KeyEvent.VK_RIGHT: model.setPacmanDirection(0, 1);  break;
                 }
-                // Skrót Ctrl+Shift+Q - powrót do menu
                 if (e.getKeyCode() == KeyEvent.VK_Q && e.isControlDown() && e.isShiftDown()) {
                     running = false;
                     JOptionPane.showMessageDialog(GameWindow.this, "Przerwano grę. Powrót do menu.");
@@ -66,10 +65,9 @@ class GameWindow extends JFrame {
             }
         });
 
-        // Wątek gry (ruch Pac-Mana, czas, bonusy, kolizje)
+        // Wątek gry
         Thread gameThread = new Thread(() -> {
             while (running) {
-                // Pauza na pierwszy ruch
                 if (model.isWaitingForFirstMove()) {
                     if (pauseStart == 0) pauseStart = System.currentTimeMillis();
                     try { Thread.sleep(30); } catch (InterruptedException ex) { break; }
@@ -98,7 +96,6 @@ class GameWindow extends JFrame {
                         if (Math.random() < 0.2) model.tryAddFrightenedUpgrade();
                     }
 
-                    // Licznik czasu
                     long elapsed = (System.currentTimeMillis() - gameStartTime - pausedTime) / 1000;
                     String timeStr = String.format("%02d:%02d", elapsed / 60, elapsed % 60);
 
@@ -108,7 +105,6 @@ class GameWindow extends JFrame {
 
                     model.fireTableDataChanged();
 
-                    // Kolizja z duchem
                     if (!gameEnded && model.handlePacmanGhostCollision()) {
                         model.lives--;
                         if (model.lives > 0) {
@@ -172,7 +168,7 @@ class GameWindow extends JFrame {
         ghostThread.start();
 
         setFocusable(true);
-        setSize(800, 800);
+        pack();
         setLocationRelativeTo(null);
         setVisible(true);
         resizeCells();
@@ -184,26 +180,21 @@ class GameWindow extends JFrame {
         });
     }
 
-    // Zmiana rozmiaru komórek w tabeli
     private void resizeCells() {
         int rows = model.getRowCount();
         int cols = model.getColumnCount();
 
-        // Pobierz rozmiar panelu centralnego (nie całego okna!)
         JPanel centerPanel = (JPanel) ((BorderLayout)getContentPane().getLayout()).getLayoutComponent(BorderLayout.CENTER);
         int panelWidth = centerPanel.getWidth();
         int panelHeight = centerPanel.getHeight();
 
-        // Wyznacz rozmiar komórki, by plansza się mieściła i była kwadratowa
         int cellSize = Math.min(panelWidth / cols, panelHeight / rows);
 
-        // Ustaw rozmiar komórek
         table.setRowHeight(cellSize);
         for (int i = 0; i < table.getColumnCount(); i++) {
             table.getColumnModel().getColumn(i).setPreferredWidth(cellSize);
         }
 
-        // Ustaw rozmiar JTable i JScrollPane dokładnie na planszę
         int tableWidth = cellSize * cols;
         int tableHeight = cellSize * rows;
         table.setPreferredScrollableViewportSize(new Dimension(tableWidth, tableHeight));
@@ -217,12 +208,10 @@ class GameWindow extends JFrame {
         scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
         scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
-        // Wyśrodkuj planszę w panelu
         centerPanel.revalidate();
         centerPanel.repaint();
     }
 
-    // Zapis wyniku do rankingu
     private void saveScore(int score) {
         String name = JOptionPane.showInputDialog(this, "Podaj swój nick:");
         if (name == null || name.trim().isEmpty()) return;
@@ -266,7 +255,7 @@ class GameWindow extends JFrame {
         }
     }
 
-    // Wyświetlanie rankingu w JList
+    // Wyświetlanie rankingu
     private void showHighScores() {
         java.util.List<Ranking> scores = loadScores();
         DefaultListModel<String> model = new DefaultListModel<>();

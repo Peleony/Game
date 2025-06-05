@@ -11,18 +11,18 @@ public class StartMenu extends JFrame {
 
         // Przyciski
         JButton newGameBtn = new JButton("New Game");
-        JButton leaderboardBtn = new JButton("Leaderboard");
+        JButton highScoresBtn = new JButton("High Scores");
         JButton exitBtn = new JButton("Exit");
 
         Dimension buttonSize = new Dimension(180, 40);
         newGameBtn.setPreferredSize(buttonSize);
-        leaderboardBtn.setPreferredSize(buttonSize);
+        highScoresBtn.setPreferredSize(buttonSize);
         exitBtn.setPreferredSize(buttonSize);
 
         gbc.gridy = 0;
         add(newGameBtn, gbc);
         gbc.gridy = 1;
-        add(leaderboardBtn, gbc);
+        add(highScoresBtn, gbc);
         gbc.gridy = 2;
         add(exitBtn, gbc);
 
@@ -43,7 +43,7 @@ public class StartMenu extends JFrame {
                     int rows = Integer.parseInt(rowsField.getText());
                     int cols = Integer.parseInt(colsField.getText());
                     if (rows < 7 || cols < 7) throw new NumberFormatException();
-                    GameModel model = new GameModel(rows, cols); // <-- zmiana tutaj
+                    GameModel model = new GameModel(rows, cols);
                     new GameWindow(model);
                     dispose();
                 } catch (Exception ex) {
@@ -52,8 +52,8 @@ public class StartMenu extends JFrame {
             }
         });
 
-        // Leaderboard
-        leaderboardBtn.addActionListener(e -> {
+        // High Scores
+        highScoresBtn.addActionListener(e -> {
             java.util.List<Ranking> scores = loadScores();
             DefaultListModel<String> model = new DefaultListModel<>();
             for (Ranking entry : scores) {
